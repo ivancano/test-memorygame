@@ -1,0 +1,91 @@
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+"Indicates what fields are available at the top level of a query operation."
+type Query {
+  memotests(trashed: Trashed @trashed): [Memotest!]! @all @softDeletes
+  memotest(trashed: Trashed @trashed, id: Int! @eq): Memotest @find @softDeletes
+  gamesessions(trashed: Trashed @trashed): [GameSession!]! @all @softDeletes
+  gamesession(trashed: Trashed @trashed, id: Int! @eq): GameSession @find @softDeletes
+}
+
+type Mutation {
+  createMemotest(input: CreateMemotest! @spread): Memotest @create
+  createMemotestImage(input: CreateMemotestImage @spread): MemotestImages @create
+  removeMemotestImage(id: ID! @whereKey): MemotestImages @delete
+  removeMemotest(id: ID! @whereKey): Memotest @delete
+  createGameSession(input: CreateGameSession! @spread): GameSession @create
+  updateGameSessionRetries(id: ID! @whereKey, retries: Int!): GameSession @update
+  endGameSession(id: ID! @whereKey, state: gameSessionState! = COMPLETED): GameSession @update
+}
+
+input CreateMemotest {
+  name: String!
+  images: CreateImagesHasMany
+}
+
+input CreateImagesHasMany {
+  create: [CreateImageInput!]!
+}
+
+input CreateImageInput {
+  name: String!
+  url: String!
+}
+
+input CreateMemotestImage {
+  name: String!
+  url: String!
+  memoTest: CreateMemotestBelongsTo
+}
+
+input CreateMemotestBelongsTo {
+  connect: ID
+}
+
+input CreateGameSession {
+  retries: Int!
+  numberOfPairs: Int!
+  state: gameSessionState! = STARTED
+  memoTest: CreateMemotestBelongsTo
+}
+
+input EndGameSession {
+  state: gameSessionState! = COMPLETED
+}
+
+type Memotest {
+  id: ID!
+  name: String!
+  images: [MemotestImages!]! @hasMany
+  games: [GameSession!]! @hasMany
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type MemotestImages {
+  id: ID!
+  name: String!
+  url: String!
+  memoTest: Memotest! @belongsTo
+}
+
+type GameSession {
+  id: ID!
+  retries: Int!
+  numberOfPairs: Int!
+  state: gameSessionState!
+  memoTest: Memotest! @belongsTo
+}
+
+enum Trashed {
+  ONLY @enum(value: "only")
+  WITH @enum(value: "with")
+  WITHOUT @enum(value: "without")
+}
+
+enum gameSessionState {
+  STARTED @enum(value: "Started")
+  COMPLETED @enum(value: "Completed")
+}
+
